@@ -11,7 +11,7 @@ jobs:
       - name: Send Slack Notification
         uses: slackapi/slack-github-action@v1.24.0
         with:
-          channel-id: "#your-review-channel"
+          channel-id: "#test"
           slack-message: |
             🔍 **レビューリクエストが来ています！**
             👉 PR: <${{ github.event.pull_request.html_url }}>
