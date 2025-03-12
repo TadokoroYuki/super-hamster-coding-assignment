@@ -15,13 +15,25 @@ jobs:
           echo "GitHub event payload:"
           echo '${{ toJSON(github.event) }}'
 
-      # 2️⃣ 前のカラム名を取得（`column_id` が `undefined` の場合に対応）
+      # 2️⃣ 前のカラム名を取得（`project_id` が `undefined` の場合に対応）
       - name: Get previous column name
         id: prev_column
         uses: actions/github-script@v6
         with:
           script: |
             const projectCard = context.payload.project_card;
+
+            // `project_card` が `undefined` の場合、エラーを回避
+            if (!projectCard) {
+              console.log("Error: project_card is undefined");
+              return "Unknown";
+            }
+
+            if (!projectCard.project_id) {
+              console.log("Error: project_id is undefined");
+              return "Unknown";
+            }
+
             const prevColumnId = context.payload.changes?.column_id?.from || "Unknown";
 
             const columns = await github.rest.projects.listColumns({
