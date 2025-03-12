@@ -3,12 +3,19 @@ name: Notify PR Review Request
 on:
   project_card:
     types: [moved]
+  workflow_dispatch: # 手動実行用（デバッグ用）
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      # 1️⃣ 前のカラム名を取得
+      # 1️⃣ GitHub イベントのデバッグ（ログを出力）
+      - name: Debug GitHub event payload
+        run: |
+          echo "GitHub event payload:"
+          echo '${{ toJSON(github.event) }}'
+
+      # 2️⃣ 前のカラム名を取得
       - name: Get previous column name
         id: prev_column
         uses: actions/github-script@v6
@@ -22,9 +29,19 @@ jobs:
             });
 
             const prevColumn = columns.data.find(c => c.id === prevColumnId);
+            console.log("Previous column:", prevColumn ? prevColumn.name : "Unknown");
             return prevColumn ? prevColumn.name : "Unknown";
 
-      # 2️⃣ 「In Progress → In Review」の場合のみ通知を送信
+      # 3️⃣ デバッグログの出力（YAML 構文エラーを回避）
+      - name: Debug previous column name
+        run: |
+          echo "Previous column was: ${{ steps.prev_column.outputs.result }}"
+
+      - name: Debug current column name
+        run: |
+          echo "Current column is: ${{ github.event.project_card.column_name }}"
+
+      # 4️⃣ 「To Do → In Progress」の場合のみ通知を送信
       - name: Send Slack Notification
         if: steps.prev_column.outputs.result == 'To Do' && github.event.project_card.column_name == 'In Progress'
         uses: slackapi/slack-github-action@v1.24.0
