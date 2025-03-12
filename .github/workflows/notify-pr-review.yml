@@ -3,7 +3,7 @@ name: Notify PR Review Request
 on:
   project_card:
     types: [moved]
-  workflow_dispatch: # 手動実行用（デバッグ用）
+  workflow_dispatch:
 
 jobs:
   notify:
@@ -15,14 +15,14 @@ jobs:
           echo "GitHub event payload:"
           echo '${{ toJSON(github.event) }}'
 
-      # 2️⃣ 前のカラム名を取得
+      # 2️⃣ 前のカラム名を取得（`column_id` が `undefined` の場合に対応）
       - name: Get previous column name
         id: prev_column
         uses: actions/github-script@v6
         with:
           script: |
             const projectCard = context.payload.project_card;
-            const prevColumnId = context.payload.changes.column_id.from;
+            const prevColumnId = context.payload.changes?.column_id?.from || "Unknown";
 
             const columns = await github.rest.projects.listColumns({
               project_id: projectCard.project_id
@@ -32,7 +32,7 @@ jobs:
             console.log("Previous column:", prevColumn ? prevColumn.name : "Unknown");
             return prevColumn ? prevColumn.name : "Unknown";
 
-      # 3️⃣ デバッグログの出力（YAML 構文エラーを回避）
+      # 3️⃣ デバッグログの出力
       - name: Debug previous column name
         run: |
           echo "Previous column was: ${{ steps.prev_column.outputs.result }}"
