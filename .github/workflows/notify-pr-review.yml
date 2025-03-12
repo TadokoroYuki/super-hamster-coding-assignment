@@ -1,64 +1,19 @@
 name: Notify PR Review Request
 
 on:
-  project_card:
-    types: [moved]
-  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      # 1️⃣ GitHub イベントのデバッグ（ログを出力）
-      - name: Debug GitHub event payload
-        run: |
-          echo "GitHub event payload:"
-          echo '${{ toJSON(github.event) }}'
-
-      # 2️⃣ 前のカラム名を取得（`project_id` が `undefined` の場合に対応）
-      - name: Get previous column name
-        id: prev_column
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const projectCard = context.payload.project_card;
-
-            // `project_card` が `undefined` の場合、エラーを回避
-            if (!projectCard) {
-              console.log("Error: project_card is undefined");
-              return "Unknown";
-            }
-
-            if (!projectCard.project_id) {
-              console.log("Error: project_id is undefined");
-              return "Unknown";
-            }
-
-            const prevColumnId = context.payload.changes?.column_id?.from || "Unknown";
-
-            const columns = await github.rest.projects.listColumns({
-              project_id: projectCard.project_id
-            });
-
-            const prevColumn = columns.data.find(c => c.id === prevColumnId);
-            console.log("Previous column:", prevColumn ? prevColumn.name : "Unknown");
-            return prevColumn ? prevColumn.name : "Unknown";
-
-      # 3️⃣ デバッグログの出力
-      - name: Debug previous column name
-        run: |
-          echo "Previous column was: ${{ steps.prev_column.outputs.result }}"
-
-      - name: Debug current column name
-        run: |
-          echo "Current column is: ${{ github.event.project_card.column_name }}"
-
-      # 4️⃣ 「To Do → In Progress」の場合のみ通知を送信
       - name: Send Slack Notification
-        if: steps.prev_column.outputs.result == 'To Do' && github.event.project_card.column_name == 'In Progress'
         uses: slackapi/slack-github-action@v1.24.0
         with:
           channel-id: "#your-review-channel"
-          slack-message: "🔍 **レビューリクエストが来ています！**\n👉 PR: <${{ github.event.project_card.content_url }}>"
+          slack-message: |
+            🔍 **レビューリクエストが来ています！**
+            👉 PR: <${{ github.event.pull_request.html_url }}>
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
