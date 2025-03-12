@@ -1,0 +1,35 @@
+name: Notify PR Review Request
+
+on:
+  project_card:
+    types: [moved]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      # 1️⃣ 前のカラム名を取得
+      - name: Get previous column name
+        id: prev_column
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const projectCard = context.payload.project_card;
+            const prevColumnId = context.payload.changes.column_id.from;
+
+            const columns = await github.rest.projects.listColumns({
+              project_id: projectCard.project_id
+            });
+
+            const prevColumn = columns.data.find(c => c.id === prevColumnId);
+            return prevColumn ? prevColumn.name : "Unknown";
+
+      # 2️⃣ 「In Progress → In Review」の場合のみ通知を送信
+      - name: Send Slack Notification
+        if: steps.prev_column.outputs.result == 'To Do' && github.event.project_card.column_name == 'In Progress'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: "#your-review-channel"
+          slack-message: "🔍 **レビューリクエストが来ています！**\n👉 PR: <${{ github.event.project_card.content_url }}>"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
